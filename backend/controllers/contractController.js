@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
-const pdfParse = require("pdf-parse");
+const pdfParse = require("pdf-parse/lib/pdf-parse.js");
 const pool = require("../config/db");
 
 const {
