@@ -1,127 +1,248 @@
 <div class="container">
   <h2>Artificial Intelligence (AI) Contract Clause Risk Analyzer</h2>
 
-  <!-- ── Language selector ────────────────────────────────────────────── -->
-  <label>Language</label>
-  <select [(ngModel)]="language">
-    <option>English</option>
-    <option>Hindi</option>
-  </select>
+  <!-- ═══ INPUT SECTION ═══════════════════════════════════════════════════ -->
+  <div *ngIf="!result">
 
-  <!-- ── Input mode toggle ────────────────────────────────────────────── -->
-  <div class="mode-toggle">
-    <button
-      class="toggle-btn"
-      [class.active]="inputMode === 'text'"
-      (click)="setMode('text')">
-      ✏️ Paste Text
-    </button>
-    <button
-      class="toggle-btn"
-      [class.active]="inputMode === 'pdf'"
-      (click)="setMode('pdf')">
-      📄 Upload PDF
-    </button>
-  </div>
+    <label>Language</label>
+    <select [(ngModel)]="language" [disabled]="loading">
+      <option>English</option>
+      <option>Hindi</option>
+    </select>
 
-  <!-- ── TEXT MODE ────────────────────────────────────────────────────── -->
-  <div *ngIf="inputMode === 'text'">
-    <label>Contract Text</label>
-    <textarea
-      [(ngModel)]="contractText"
-      rows="10"
-      placeholder="Paste your contract text here (minimum 20 characters)...">
-    </textarea>
-  </div>
-
-  <!-- ── PDF MODE ─────────────────────────────────────────────────────── -->
-  <div *ngIf="inputMode === 'pdf'">
-    <label>Upload Contract PDF</label>
-    <div
-      class="drop-zone"
-      [class.has-file]="selectedFile"
-      (click)="fileInput.click()"
-      (dragover)="$event.preventDefault()"
-      (drop)="onFileDrop($event)">
-
-      <input
-        #fileInput
-        type="file"
-        accept="application/pdf"
-        style="display:none"
-        (change)="onFileSelected($event)" />
-
-      <!-- Empty state -->
-      <div *ngIf="!selectedFile" class="drop-content">
-        <span class="drop-icon">📁</span>
-        <p>Click to browse or drag & drop a PDF here</p>
-        <small>PDF only · Max 5 MB</small>
-      </div>
-
-      <!-- File selected state -->
-      <div *ngIf="selectedFile" class="drop-content file-ready">
-        <span class="drop-icon">✅</span>
-        <p><strong>{{ selectedFile.name }}</strong></p>
-        <small>
-          {{ (selectedFile.size / 1024).toFixed(1) }} KB &nbsp;·&nbsp;
-          <a (click)="removeFile($event)">Remove</a>
-        </small>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Submit button ────────────────────────────────────────────────── -->
-  <button (click)="analyzeContract()" [disabled]="!canSubmit">
-    {{ loading ? 'Analyzing...' : 'Analyze Contract' }}
-  </button>
-
-  <!-- ── Error message ────────────────────────────────────────────────── -->
-  <p class="error" *ngIf="error">{{ error }}</p>
-
-  <!-- ── Results ──────────────────────────────────────────────────────── -->
-  <div *ngIf="result" class="result-card">
-    <h3>Analysis Result</h3>
-
-    <p><strong>Summary:</strong> {{ result.summary }}</p>
-
-    <p>
-      <strong>Overall Risk:</strong>
-      <span class="risk-badge risk-{{ result.overallRisk?.toLowerCase() }}">
-        {{ result.overallRisk }}
-      </span>
-    </p>
-
-    <p>
-      <strong>Confidence Score:</strong>
-      <span class="conf-wrap">
-        <span
-          class="conf-bar"
-          [class.conf-high]="result.confidenceScore >= 0.6"
-          [class.conf-low]="result.confidenceScore < 0.6"
-          [style.width]="(result.confidenceScore * 100) + '%'">
-        </span>
-        <span class="conf-label">{{ (result.confidenceScore * 100).toFixed(0) }}%</span>
-      </span>
-    </p>
-
-    <div *ngIf="result.requiresHumanReview" class="warning">
-      ⚠️ Human review required — confidence is below the minimum threshold (60%).
+    <!-- Input mode toggle -->
+    <div class="mode-toggle">
+      <button
+        class="toggle-btn"
+        [class.active]="inputMode === 'text'"
+        [disabled]="loading"
+        (click)="setMode('text')">
+        ✏️ Paste Text
+      </button>
+      <button
+        class="toggle-btn"
+        [class.active]="inputMode === 'pdf'"
+        [disabled]="loading"
+        (click)="setMode('pdf')">
+        📄 Upload PDF
+      </button>
     </div>
 
-    <h4>Clauses</h4>
+    <!-- TEXT MODE -->
+    <div *ngIf="inputMode === 'text'">
+      <label>Contract Text</label>
+      <textarea
+        [(ngModel)]="contractText"
+        rows="10"
+        [disabled]="loading"
+        placeholder="Paste your contract text here (minimum 20 characters)...">
+      </textarea>
+    </div>
 
-    <div *ngFor="let clause of result.clauses" class="clause-card">
-      <h5>{{ clause.clauseTitle }}</h5>
-      <p>
-        <strong>Risk:</strong>
-        <span class="risk-badge risk-{{ clause.riskLevel?.toLowerCase() }}">
-          {{ clause.riskLevel }}
-        </span>
-      </p>
-      <p><strong>Reason:</strong> {{ clause.riskReason }}</p>
-      <p><strong>Plain Explanation:</strong> {{ clause.plainExplanation }}</p>
-      <p><strong>Suggested Alternative:</strong> {{ clause.suggestedAlternative }}</p>
-      <p><strong>Confidence:</strong> {{ (clause.confidenceScore * 100).toFixed(0) }}%</p>
+    <!-- PDF MODE -->
+    <div *ngIf="inputMode === 'pdf'">
+      <label>Upload Contract PDF</label>
+      <div
+        class="drop-zone"
+        [class.has-file]="selectedFile"
+        [class.disabled]="loading"
+        (click)="!loading && fileInput.click()"
+        (dragover)="$event.preventDefault()"
+        (drop)="!loading && onFileDrop($event)">
+
+        <input
+          #fileInput
+          type="file"
+          accept="application/pdf"
+          style="display:none"
+          (change)="onFileSelected($event)" />
+
+        <div *ngIf="!selectedFile" class="drop-content">
+          <span class="drop-icon">📁</span>
+          <p>Click to browse or drag & drop a PDF here</p>
+          <small>PDF only · Max 5 MB</small>
+        </div>
+
+        <div *ngIf="selectedFile" class="drop-content file-ready">
+          <span class="drop-icon">✅</span>
+          <p><strong>{{ selectedFile.name }}</strong></p>
+          <small>
+            {{ (selectedFile.size / 1024).toFixed(1) }} KB
+            <span *ngIf="!loading">·
+              <a (click)="removeFile($event)">Remove</a>
+            </span>
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit button with loader -->
+    <button (click)="analyzeContract()" [disabled]="!canSubmit" class="primary-btn">
+      <span *ngIf="!loading">🔍 Analyze Contract</span>
+      <span *ngIf="loading" class="loader-inline">
+        <span class="spinner"></span>
+        Analyzing your contract...
+      </span>
+    </button>
+
+    <!-- Loading progress info -->
+    <div *ngIf="loading" class="progress-info">
+      <p>⏱️ This typically takes 10–20 seconds. Please wait while GPT-4o analyzes every clause for risk and suggests alternatives.</p>
+    </div>
+
+    <p class="error" *ngIf="error">{{ error }}</p>
+  </div>
+
+  <!-- ═══ RESULTS SECTION ═════════════════════════════════════════════════ -->
+  <div *ngIf="result" class="result-wrap">
+
+    <!-- File metadata (only for PDF uploads) -->
+    <div *ngIf="fileMeta" class="file-meta-card">
+      <span class="meta-icon">📄</span>
+      <div>
+        <strong>{{ fileMeta.filename }}</strong>
+        <small>{{ fileMeta.totalPages }} pages · {{ fileMeta.extractedChars }} characters extracted</small>
+      </div>
+    </div>
+
+    <!-- Top summary card -->
+    <div class="summary-card">
+      <div class="summary-header">
+        <h3>Analysis Complete</h3>
+        <div class="summary-actions">
+          <button class="btn-secondary" (click)="downloadResult()">⬇️ Download JSON</button>
+          <button class="btn-secondary" (click)="newAnalysis()">🔄 New Analysis</button>
+        </div>
+      </div>
+
+      <!-- Overall risk & confidence in a 2-column grid -->
+      <div class="summary-grid">
+        <!-- Overall Risk -->
+        <div class="metric-card" [ngClass]="riskClass(result.overallRisk)">
+          <div class="metric-label">Overall Risk</div>
+          <div class="metric-value">
+            <span class="risk-badge-large" [ngClass]="riskClass(result.overallRisk)">
+              {{ result.overallRisk }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Confidence -->
+        <div class="metric-card">
+          <div class="metric-label">AI Confidence</div>
+          <div class="metric-value">
+            <div class="conf-ring" [class.low]="result.confidenceScore < 0.6">
+              {{ (result.confidenceScore * 100).toFixed(0) }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Human review warning -->
+      <div *ngIf="result.requiresHumanReview" class="warning">
+        ⚠️ <strong>Human review required</strong> — This analysis has flagged concerns that need a legal professional's attention.
+      </div>
+
+      <!-- Summary text -->
+      <div class="summary-text">
+        <h4>📝 Summary</h4>
+        <p>{{ result.summary }}</p>
+      </div>
+
+      <!-- Plain language explanation -->
+      <div class="summary-text" *ngIf="result.plainLanguageExplanation">
+        <h4>💡 What This Means For You</h4>
+        <p>{{ result.plainLanguageExplanation }}</p>
+      </div>
+    </div>
+
+    <!-- Named Entities -->
+    <div class="entities-card" *ngIf="result.namedEntities">
+      <h4>🏷️ Key Information Extracted</h4>
+      <div class="entities-grid">
+        <div class="entity-group" *ngIf="result.namedEntities.parties?.length">
+          <div class="entity-label">Parties</div>
+          <div class="entity-chips">
+            <span class="chip" *ngFor="let p of result.namedEntities.parties">{{ p }}</span>
+          </div>
+        </div>
+        <div class="entity-group" *ngIf="result.namedEntities.dates?.length">
+          <div class="entity-label">Dates</div>
+          <div class="entity-chips">
+            <span class="chip" *ngFor="let d of result.namedEntities.dates">{{ d }}</span>
+          </div>
+        </div>
+        <div class="entity-group" *ngIf="result.namedEntities.jurisdictions?.length">
+          <div class="entity-label">Jurisdictions</div>
+          <div class="entity-chips">
+            <span class="chip" *ngFor="let j of result.namedEntities.jurisdictions">{{ j }}</span>
+          </div>
+        </div>
+        <div class="entity-group" *ngIf="result.namedEntities.moneyValues?.length">
+          <div class="entity-label">Money Values</div>
+          <div class="entity-chips">
+            <span class="chip" *ngFor="let m of result.namedEntities.moneyValues">{{ m }}</span>
+          </div>
+        </div>
+        <div class="entity-group" *ngIf="result.namedEntities.obligations?.length">
+          <div class="entity-label">Obligations</div>
+          <div class="entity-chips">
+            <span class="chip" *ngFor="let o of result.namedEntities.obligations">{{ o }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clauses list -->
+    <div class="clauses-section">
+      <h4>📋 Clause-by-Clause Analysis <span class="count">({{ result.clauses?.length || 0 }})</span></h4>
+
+      <div *ngFor="let clause of result.clauses; let i = index"
+           class="clause-card"
+           [ngClass]="riskClass(clause.riskLevel)">
+
+        <div class="clause-header">
+          <div class="clause-number">{{ i + 1 }}</div>
+          <div class="clause-title-wrap">
+            <h5>{{ clause.clauseTitle }}</h5>
+            <span class="risk-badge" [ngClass]="riskClass(clause.riskLevel)">
+              {{ clause.riskLevel }}
+            </span>
+          </div>
+        </div>
+
+        <div class="clause-body">
+          <div class="clause-field">
+            <div class="field-label">⚠️ Risk Reason</div>
+            <p>{{ clause.riskReason }}</p>
+          </div>
+
+          <div class="clause-field">
+            <div class="field-label">💬 Plain Explanation</div>
+            <p>{{ clause.plainExplanation }}</p>
+          </div>
+
+          <div class="clause-field suggestion">
+            <div class="field-label">✨ Suggested Alternative</div>
+            <p>{{ clause.suggestedAlternative }}</p>
+          </div>
+
+          <div class="clause-footer">
+            <span class="conf-mini">
+              Confidence: <strong>{{ (clause.confidenceScore * 100).toFixed(0) }}%</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metadata footer -->
+    <div class="meta-footer">
+      <small>
+        Model: <strong>{{ result.modelVersion }}</strong> ·
+        Prompt: <strong>{{ result.promptVersion }}</strong> ·
+        Processing: <strong>{{ (result.processingTimeMs / 1000).toFixed(1) }}s</strong>
+      </small>
     </div>
   </div>
 </div>

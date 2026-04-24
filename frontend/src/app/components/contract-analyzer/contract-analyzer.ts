@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract';
@@ -22,10 +22,14 @@ export class ContractAnalyzerComponent {
   loading = false;
   error = '';
   result: any = null;
+  fileMeta: any = null; // holds info about the uploaded PDF (pages, chars, etc.)
 
-  constructor(private contractService: ContractService) {}
+  constructor(
+    private contractService: ContractService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
+  ) {}
 
-  // ── Handle file selected from the file input ──────────────────────────────
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
@@ -45,7 +49,6 @@ export class ContractAnalyzerComponent {
     }
   }
 
-  // ── Handle file dropped onto the drop zone ────────────────────────────────
   onFileDrop(event: DragEvent): void {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
@@ -62,22 +65,20 @@ export class ContractAnalyzerComponent {
     this.error = '';
   }
 
-  // ── Remove selected file ──────────────────────────────────────────────────
   removeFile(event: Event): void {
     event.stopPropagation();
     this.selectedFile = null;
   }
 
-  // ── Switch between text and PDF modes ─────────────────────────────────────
   setMode(mode: 'text' | 'pdf'): void {
     this.inputMode = mode;
     this.result = null;
+    this.fileMeta = null;
     this.error = '';
     if (mode === 'text') this.selectedFile = null;
     if (mode === 'pdf') this.contractText = '';
   }
 
-  // ── Button is disabled unless there's valid input ─────────────────────────
   get canSubmit(): boolean {
     if (this.loading) return false;
     if (this.inputMode === 'text') return this.contractText.trim().length >= 20;
@@ -85,40 +86,81 @@ export class ContractAnalyzerComponent {
     return false;
   }
 
-  // ── Main submit handler ───────────────────────────────────────────────────
+  /** Risk class helper for template (handles "Critical" → red, "Low" → green, etc.) */
+  riskClass(level: string): string {
+    if (!level) return '';
+    return 'risk-' + level.toLowerCase();
+  }
+
   analyzeContract(): void {
     this.loading = true;
     this.error = '';
     this.result = null;
+    this.fileMeta = null;
+
+    const finish = (res: any, isFile: boolean) => {
+      // Run inside Angular zone so the UI updates immediately
+      this.ngZone.run(() => {
+        this.result = res.result;
+        if (isFile) {
+          this.fileMeta = {
+            filename: res.filename,
+            totalPages: res.totalPages,
+            extractedChars: res.extractedChars
+          };
+        }
+        this.loading = false;
+        this.cdr.detectChanges(); // force re-render
+        // Scroll to result after render
+        setTimeout(() => {
+          document.querySelector('.result-card')?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      });
+    };
+
+    const fail = (err: any) => {
+      this.ngZone.run(() => {
+        this.error = err?.error?.error || 'Failed to analyze contract. Please try again.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      });
+    };
 
     if (this.inputMode === 'pdf' && this.selectedFile) {
-      // PDF mode — send file via FormData
       this.contractService
         .analyzeContractFile(this.selectedFile, this.language)
         .subscribe({
-          next: (res: any) => {
-            this.result = res.result;
-            this.loading = false;
-          },
-          error: (err: any) => {
-            this.error = err?.error?.error || 'Failed to analyze PDF. Please try again.';
-            this.loading = false;
-          }
+          next: (res: any) => finish(res, true),
+          error: fail
         });
     } else {
-      // Text mode — send plain contractText
       this.contractService
         .analyzeContract(this.contractText, this.language)
         .subscribe({
-          next: (res: any) => {
-            this.result = res.result;
-            this.loading = false;
-          },
-          error: (err: any) => {
-            this.error = err?.error?.error || 'Failed to analyze contract. Please try again.';
-            this.loading = false;
-          }
+          next: (res: any) => finish(res, false),
+          error: fail
         });
     }
+  }
+
+  /** Download result as JSON file */
+  downloadResult(): void {
+    if (!this.result) return;
+    const blob = new Blob([JSON.stringify(this.result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analysis_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** Reset form for a new analysis */
+  newAnalysis(): void {
+    this.result = null;
+    this.fileMeta = null;
+    this.error = '';
+    this.contractText = '';
+    this.selectedFile = null;
   }
 }
