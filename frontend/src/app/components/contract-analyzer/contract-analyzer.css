@@ -1,0 +1,34 @@
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+textarea,
+select {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.result-card,
+.clause-card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-top: 15px;
+  border-radius: 8px;
+}
+
+.error {
+  color: red;
+}
+
+.warning {
+  color: orange;
+  font-weight: bold;
+}

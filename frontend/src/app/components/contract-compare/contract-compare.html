@@ -1,0 +1,32 @@
+<div class="container">
+  <h2>Compare Contract Versions</h2>
+
+  <textarea
+    [(ngModel)]="oldContract"
+    rows="8"
+    placeholder="Old contract version"
+  ></textarea>
+
+  <textarea
+    [(ngModel)]="newContract"
+    rows="8"
+    placeholder="New contract version"
+  ></textarea>
+
+  <button (click)="compareContracts()" [disabled]="loading">
+    {{ loading ? 'Comparing...' : 'Compare Contracts' }}
+  </button>
+
+  <div *ngIf="result">
+    <h3>Comparison Result</h3>
+    <p>{{ result.summary }}</p>
+
+    <div *ngFor="let change of result.changes">
+      <h4>{{ change.section }}</h4>
+      <p><strong>Old:</strong> {{ change.oldText }}</p>
+      <p><strong>New:</strong> {{ change.newText }}</p>
+      <p><strong>Risk Impact:</strong> {{ change.riskImpact }}</p>
+      <p><strong>Suggestion:</strong> {{ change.negotiationSuggestion }}</p>
+    </div>
+  </div>
+</div>

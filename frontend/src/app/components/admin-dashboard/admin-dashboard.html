@@ -1,0 +1,13 @@
+<div class="container" *ngIf="dashboard">
+  <h2>Admin Dashboard</h2>
+
+  <p><strong>Total Requests:</strong> {{ dashboard.totalRequests }}</p>
+  <p><strong>Completed:</strong> {{ dashboard.completedRequests }}</p>
+  <p><strong>Failed:</strong> {{ dashboard.failedRequests }}</p>
+  <p><strong>Average Confidence:</strong> {{ dashboard.averageConfidence }}</p>
+  <p><strong>Error Rate:</strong> {{ dashboard.errorRate }}</p>
+
+  <h3>Current Settings</h3>
+  <p><strong>Confidence Threshold:</strong> {{ dashboard.settings.confidenceThreshold }}</p>
+  <p><strong>Rate Limit:</strong> {{ dashboard.settings.rateLimit }}</p>
+</div>

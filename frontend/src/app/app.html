@@ -1,0 +1,10 @@
+<h1>Artificial Intelligence Contract Clause Risk Analyzer</h1>
+
+<nav class="top-bar" *ngIf="isLoggedIn">
+  <a routerLink="/home">Analyzer</a>
+  <a routerLink="/home/compare">Compare</a>
+  <a routerLink="/home/admin">Admin Dashboard</a>
+  <button (click)="logout()">Logout</button>
+</nav>
+
+<router-outlet></router-outlet>

@@ -1,0 +1,45 @@
+<div class="container">
+  <h2>AI Contract Clause Risk Analyzer</h2>
+
+  <label>Language</label>
+  <select [(ngModel)]="language">
+    <option>English</option>
+    <option>Hindi</option>
+  </select>
+
+  <label>Contract Text</label>
+  <textarea
+    [(ngModel)]="contractText"
+    rows="10"
+    placeholder="Paste contract text here..."
+  ></textarea>
+
+  <button (click)="analyzeContract()" [disabled]="loading">
+    {{ loading ? 'Analyzing...' : 'Analyze Contract' }}
+  </button>
+
+  <p class="error" *ngIf="error">{{ error }}</p>
+
+  <div *ngIf="result" class="result-card">
+    <h3>Analysis Result</h3>
+
+    <p><strong>Summary:</strong> {{ result.summary }}</p>
+    <p><strong>Overall Risk:</strong> {{ result.overallRisk }}</p>
+    <p><strong>Confidence:</strong> {{ result.confidenceScore }}</p>
+
+    <p *ngIf="result.requiresHumanReview" class="warning">
+      Human review required due to low confidence.
+    </p>
+
+    <h4>Clauses</h4>
+
+    <div *ngFor="let clause of result.clauses" class="clause-card">
+      <h5>{{ clause.clauseTitle }}</h5>
+      <p><strong>Risk:</strong> {{ clause.riskLevel }}</p>
+      <p><strong>Reason:</strong> {{ clause.riskReason }}</p>
+      <p><strong>Explanation:</strong> {{ clause.plainExplanation }}</p>
+      <p><strong>Suggestion:</strong> {{ clause.suggestedAlternative }}</p>
+      <p><strong>Confidence:</strong> {{ clause.confidenceScore }}</p>
+    </div>
+  </div>
+</div>

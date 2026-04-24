@@ -1,0 +1,151 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  color: #222;
+}
+
+h1 {
+  text-align: center;
+  background: #1f3c88;
+  color: white;
+  padding: 24px;
+  margin: 0 0 30px 0;
+}
+
+h2 {
+  color: #1f3c88;
+  margin-bottom: 20px;
+}
+
+.container {
+  width: 90%;
+  max-width: 1100px;
+  margin: 30px auto;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin: 14px 0 6px;
+}
+
+select,
+textarea,
+input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cfd6e4;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+textarea {
+  min-height: 180px;
+  resize: vertical;
+}
+
+select:focus,
+textarea:focus,
+input:focus {
+  border-color: #1f3c88;
+  box-shadow: 0 0 0 2px rgba(31, 60, 136, 0.15);
+}
+
+button {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: #1f3c88;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #162d66;
+}
+
+button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 35px 0;
+}
+
+.result-card,
+.clause-card {
+  background: #f9fbff;
+  border: 1px solid #dce4f2;
+  padding: 18px;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+
+.clause-card {
+  border-left: 5px solid #1f3c88;
+}
+
+.error {
+  color: #d93025;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+.warning {
+  color: #b26a00;
+  background: #fff4d6;
+  padding: 10px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.compare-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.admin-card {
+  background: #f9fbff;
+  padding: 18px;
+  border-radius: 10px;
+  border: 1px solid #dce4f2;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .compare-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}
+
+.top-bar {
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto 20px auto;
+  text-align: right;
+}
