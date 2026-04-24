@@ -29,6 +29,142 @@ button {
 }
 
 .warning {
-  color: orange;
+  color: #b26a00;
+  background: #fff4d6;
+  padding: 10px;
+  border-radius: 6px;
   font-weight: bold;
+  margin: 12px 0;
+}
+
+/* ── Mode Toggle ─────────────────────────────────────────────────────────── */
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.toggle-btn {
+  padding: 10px 22px;
+  background: #eef1f8;
+  color: #1f3c88;
+  border: 2px solid #cfd6e4;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: #1f3c88;
+  color: white;
+  border-color: #1f3c88;
+}
+
+/* ── PDF Drop Zone ───────────────────────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed #1f3c88;
+  border-radius: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #f4f7ff;
+  transition: background 0.2s;
+  margin: 10px 0;
+}
+
+.drop-zone:hover {
+  background: #e8edff;
+}
+
+.drop-zone.has-file {
+  border-color: #27ae60;
+  background: #f0fff5;
+}
+
+.drop-content {
+  pointer-events: none;
+}
+
+.drop-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.drop-zone p {
+  margin: 4px 0;
+  color: #333;
+  font-weight: 500;
+}
+
+.drop-zone small {
+  color: #888;
+}
+
+.drop-zone a {
+  color: #d93025;
+  cursor: pointer;
+  text-decoration: underline;
+  pointer-events: all;
+}
+
+/* ── Risk Badges ─────────────────────────────────────────────────────────── */
+.risk-badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  margin-left: 6px;
+  text-transform: capitalize;
+}
+
+.risk-high,
+.risk-critical {
+  background: #fde8e8;
+  color: #c0392b;
+}
+
+.risk-medium {
+  background: #fff4d6;
+  color: #b26a00;
+}
+
+.risk-low {
+  background: #e8faf0;
+  color: #1e8449;
+}
+
+/* ── Confidence Bar ──────────────────────────────────────────────────────── */
+.conf-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  width: 200px;
+}
+
+.conf-bar {
+  display: inline-block;
+  height: 10px;
+  border-radius: 5px;
+  min-width: 4px;
+  max-width: 160px;
+  transition: width 0.4s ease;
+}
+
+.conf-high {
+  background: #27ae60;
+}
+
+.conf-low {
+  background: #e74c3c;
+}
+
+.conf-label {
+  font-size: 13px;
+  color: #555;
 }

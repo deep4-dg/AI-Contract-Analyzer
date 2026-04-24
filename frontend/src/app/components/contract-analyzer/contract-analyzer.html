@@ -1,45 +1,127 @@
 <div class="container">
-  <h2>AI Contract Clause Risk Analyzer</h2>
+  <h2>Artificial Intelligence (AI) Contract Clause Risk Analyzer</h2>
 
+  <!-- ── Language selector ────────────────────────────────────────────── -->
   <label>Language</label>
   <select [(ngModel)]="language">
     <option>English</option>
     <option>Hindi</option>
   </select>
 
-  <label>Contract Text</label>
-  <textarea
-    [(ngModel)]="contractText"
-    rows="10"
-    placeholder="Paste contract text here..."
-  ></textarea>
+  <!-- ── Input mode toggle ────────────────────────────────────────────── -->
+  <div class="mode-toggle">
+    <button
+      class="toggle-btn"
+      [class.active]="inputMode === 'text'"
+      (click)="setMode('text')">
+      ✏️ Paste Text
+    </button>
+    <button
+      class="toggle-btn"
+      [class.active]="inputMode === 'pdf'"
+      (click)="setMode('pdf')">
+      📄 Upload PDF
+    </button>
+  </div>
 
-  <button (click)="analyzeContract()" [disabled]="loading">
+  <!-- ── TEXT MODE ────────────────────────────────────────────────────── -->
+  <div *ngIf="inputMode === 'text'">
+    <label>Contract Text</label>
+    <textarea
+      [(ngModel)]="contractText"
+      rows="10"
+      placeholder="Paste your contract text here (minimum 20 characters)...">
+    </textarea>
+  </div>
+
+  <!-- ── PDF MODE ─────────────────────────────────────────────────────── -->
+  <div *ngIf="inputMode === 'pdf'">
+    <label>Upload Contract PDF</label>
+    <div
+      class="drop-zone"
+      [class.has-file]="selectedFile"
+      (click)="fileInput.click()"
+      (dragover)="$event.preventDefault()"
+      (drop)="onFileDrop($event)">
+
+      <input
+        #fileInput
+        type="file"
+        accept="application/pdf"
+        style="display:none"
+        (change)="onFileSelected($event)" />
+
+      <!-- Empty state -->
+      <div *ngIf="!selectedFile" class="drop-content">
+        <span class="drop-icon">📁</span>
+        <p>Click to browse or drag & drop a PDF here</p>
+        <small>PDF only · Max 5 MB</small>
+      </div>
+
+      <!-- File selected state -->
+      <div *ngIf="selectedFile" class="drop-content file-ready">
+        <span class="drop-icon">✅</span>
+        <p><strong>{{ selectedFile.name }}</strong></p>
+        <small>
+          {{ (selectedFile.size / 1024).toFixed(1) }} KB &nbsp;·&nbsp;
+          <a (click)="removeFile($event)">Remove</a>
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Submit button ────────────────────────────────────────────────── -->
+  <button (click)="analyzeContract()" [disabled]="!canSubmit">
     {{ loading ? 'Analyzing...' : 'Analyze Contract' }}
   </button>
 
+  <!-- ── Error message ────────────────────────────────────────────────── -->
   <p class="error" *ngIf="error">{{ error }}</p>
 
+  <!-- ── Results ──────────────────────────────────────────────────────── -->
   <div *ngIf="result" class="result-card">
     <h3>Analysis Result</h3>
 
     <p><strong>Summary:</strong> {{ result.summary }}</p>
-    <p><strong>Overall Risk:</strong> {{ result.overallRisk }}</p>
-    <p><strong>Confidence:</strong> {{ result.confidenceScore }}</p>
 
-    <p *ngIf="result.requiresHumanReview" class="warning">
-      Human review required due to low confidence.
+    <p>
+      <strong>Overall Risk:</strong>
+      <span class="risk-badge risk-{{ result.overallRisk?.toLowerCase() }}">
+        {{ result.overallRisk }}
+      </span>
     </p>
+
+    <p>
+      <strong>Confidence Score:</strong>
+      <span class="conf-wrap">
+        <span
+          class="conf-bar"
+          [class.conf-high]="result.confidenceScore >= 0.6"
+          [class.conf-low]="result.confidenceScore < 0.6"
+          [style.width]="(result.confidenceScore * 100) + '%'">
+        </span>
+        <span class="conf-label">{{ (result.confidenceScore * 100).toFixed(0) }}%</span>
+      </span>
+    </p>
+
+    <div *ngIf="result.requiresHumanReview" class="warning">
+      ⚠️ Human review required — confidence is below the minimum threshold (60%).
+    </div>
 
     <h4>Clauses</h4>
 
     <div *ngFor="let clause of result.clauses" class="clause-card">
       <h5>{{ clause.clauseTitle }}</h5>
-      <p><strong>Risk:</strong> {{ clause.riskLevel }}</p>
+      <p>
+        <strong>Risk:</strong>
+        <span class="risk-badge risk-{{ clause.riskLevel?.toLowerCase() }}">
+          {{ clause.riskLevel }}
+        </span>
+      </p>
       <p><strong>Reason:</strong> {{ clause.riskReason }}</p>
-      <p><strong>Explanation:</strong> {{ clause.plainExplanation }}</p>
-      <p><strong>Suggestion:</strong> {{ clause.suggestedAlternative }}</p>
-      <p><strong>Confidence:</strong> {{ clause.confidenceScore }}</p>
+      <p><strong>Plain Explanation:</strong> {{ clause.plainExplanation }}</p>
+      <p><strong>Suggested Alternative:</strong> {{ clause.suggestedAlternative }}</p>
+      <p><strong>Confidence:</strong> {{ (clause.confidenceScore * 100).toFixed(0) }}%</p>
     </div>
   </div>
 </div>

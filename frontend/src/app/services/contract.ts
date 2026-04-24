@@ -11,6 +11,7 @@ export class ContractService {
 
   constructor(private http: HttpClient) {}
 
+  // ── Auth ──────────────────────────────────────────────────────────────────
   signup(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/signup`, data);
   }
@@ -29,6 +30,7 @@ export class ContractService {
     });
   }
 
+  // ── Analyze: plain text ───────────────────────────────────────────────────
   analyzeContract(contractText: string, language: string): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/contracts/analyze`,
@@ -37,6 +39,26 @@ export class ContractService {
     );
   }
 
+  // ── Analyze: PDF file upload ──────────────────────────────────────────────
+  // Sends multipart/form-data — DO NOT set Content-Type manually.
+  // The browser sets it automatically with the correct boundary.
+  analyzeContractFile(file: File, language: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('language', language);
+
+    return this.http.post(
+      `${this.apiUrl}/contracts/analyze-file`,
+      formData,
+      {
+        headers: new HttpHeaders({
+          Authorization: `Bearer ${this.getToken() ?? ''}`
+        })
+      }
+    );
+  }
+
+  // ── Compare two contract versions ─────────────────────────────────────────
   compareContracts(oldContract: string, newContract: string): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/contracts/compare`,
@@ -45,6 +67,7 @@ export class ContractService {
     );
   }
 
+  // ── Extract clauses only (fast, no full analysis) ─────────────────────────
   extractClauses(contractText: string): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/contracts/extract-clauses`,
@@ -53,6 +76,7 @@ export class ContractService {
     );
   }
 
+  // ── Admin: dashboard stats ────────────────────────────────────────────────
   getDashboard(): Observable<any> {
     return this.http.get(
       `${this.apiUrl}/admin/dashboard`,
@@ -60,6 +84,7 @@ export class ContractService {
     );
   }
 
+  // ── Admin: update runtime settings (confidence threshold, rate limit) ─────
   updateSettings(settings: any): Observable<any> {
     return this.http.put(
       `${this.apiUrl}/admin/settings`,
@@ -68,13 +93,17 @@ export class ContractService {
     );
   }
 
-  exportAuditLogs(): Observable<Blob> {
-    return this.http.get(
-      `${this.apiUrl}/admin/audit-logs/export`,
-      {
-        headers: this.getHeaders(),
-        responseType: 'blob'
-      }
-    );
+  // ── Admin: export audit logs as CSV (with optional date range) ────────────
+  exportAuditLogs(from?: string, to?: string): Observable<Blob> {
+    let url = `${this.apiUrl}/admin/audit-logs/export`;
+    const params: string[] = [];
+    if (from) params.push(`from=${from}`);
+    if (to) params.push(`to=${to}`);
+    if (params.length) url += `?${params.join('&')}`;
+
+    return this.http.get(url, {
+      headers: this.getHeaders(),
+      responseType: 'blob'
+    });
   }
 }
