@@ -6,145 +6,184 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-The purpose of this system is to assist **Small and Medium Enterprises (SMEs)** in understanding complex legal contracts by automatically identifying risky clauses, explaining them in simple language, and providing negotiation recommendations using **Artificial Intelligence (AI)**.
+The purpose of this system is to enable **Small and Medium Enterprises (SMEs)** to understand complex legal contracts without requiring legal expertise. The system leverages **Artificial Intelligence (AI)** to identify risky clauses, provide simplified explanations, and generate actionable negotiation suggestions.
 
 ### 1.2 Scope
-The system provides a **Backend Application Programming Interface (API)** and an **Admin Dashboard** that performs:
+The system consists of:
+- A **Backend Application Programming Interface (API)**
+- An **Angular-based User Interface**
+- An **Administrative Dashboard**
 
-- Contract clause extraction
-- Risk classification
-- Contract comparison
-- AI-based negotiation suggestions
+Core capabilities include:
+- Automated clause extraction
+- Risk classification and scoring
+- Contract comparison and redlining
+- AI-generated negotiation suggestions
 - Audit logging and monitoring
 
-The system is designed to operate in a **single-session workflow**, ensuring ease of use without requiring prior legal expertise.
+The system is designed for **end-to-end usability within a single session**, minimizing user training requirements.
 
 ### 1.3 Technology Stack
-- **Backend:** Node.js (Express) *(or Python FastAPI if applicable)*
 - **Frontend:** Angular
+- **Backend:** Node.js (Express) *(aligned with implementation)*
 - **Database:** PostgreSQL
 - **AI Engine:** OpenAI GPT-4o
-- **Deployment:** Docker (optional for production)
+- **Authentication:** JSON Web Token (JWT)
+- **Deployment:** Docker (optional)
 
 ---
 
 ## 2. Users and Roles
 
 ### 2.1 Legal Professional / Paralegal
-- Reviews contracts and clauses
-- Interprets AI-generated risk insights
-- Uses suggestions for negotiation
+- Reviews contract clauses and risk insights
+- Validates AI-generated suggestions
+- Uses recommendations during negotiations
 
 ### 2.2 Compliance Officer
-- Monitors contract risk levels
-- Reviews flagged or low-confidence results
-- Takes escalation decisions
+- Monitors overall contract risk exposure
+- Reviews flagged or low-confidence outputs
+- Initiates escalation or review workflows
 
 ### 2.3 System Administrator
-- Configures system settings (thresholds, rate limits)
-- Monitors system performance and logs
-- Exports audit reports
+- Configures thresholds and rate limits
+- Manages audit logs and system settings
+- Monitors performance and system health
 
-### 2.4 System (Automated)
-- Executes AI-based analysis
-- Extracts clauses and entities
-- Generates risk insights and suggestions
+### 2.4 System (Automated Actor)
+- Executes AI-driven analysis
+- Performs clause extraction and classification
+- Generates insights and recommendations without manual intervention
 
 ---
 
 ## 3. Functional Requirements
 
 ### 3.1 Input & Processing
-- The system shall accept **authenticated API requests**
-- The system shall validate input contract text
-- The system shall return a **unique reference ID** for each request
+The system shall:
+- Accept authenticated API requests using **JWT authentication**
+- Validate contract text input for completeness and correctness
+- Generate a **unique reference ID** for each request
+- Ensure request processing is stateless and scalable
+
+---
 
 ### 3.2 AI Capabilities
 The system shall:
 - Extract clauses using **Natural Language Processing (NLP)**
-- Classify risk levels (Low, Medium, High, Critical)
-- Detect one-sided or unfair contractual terms
-- Perform **Named Entity Recognition (NER)**:
+- Classify risk levels into:
+  - Low
+  - Medium
+  - High
+  - Critical
+- Detect **one-sided, biased, or unfair contract terms**
+- Perform **Named Entity Recognition (NER)** including:
   - Parties
   - Dates
   - Monetary values
+  - Jurisdictions
   - Obligations
-- Compare different versions of contracts
+- Compare contract versions and highlight differences
+
+---
 
 ### 3.3 Output & Insights
 The system shall:
-- Provide **plain-language explanations** (Hindi or English)
+- Provide **plain-language explanations** in English and Hindi
 - Suggest improved or balanced clause alternatives
-- Generate contract comparison insights
-- Return a **confidence score (0–1)** for each AI decision
+- Generate structured contract comparison outputs
+- Provide a **confidence score (0–1)** for every AI-generated result
+- Clearly indicate risk reasoning for each clause
+
+---
 
 ### 3.4 Fallback Handling
-If confidence score < configurable threshold (default: 0.6):
-- Mark result as **Requires Human Review**
-- Provide fallback message:
-  - “Unable to determine with high confidence”
-- Prevent unverified decision output
+If the confidence score is below the configurable threshold (default: 0.6):
+
+The system shall:
+- Mark the result as **"Requires Human Review"**
+- Provide a fallback message:
+  > “Unable to determine with sufficient confidence”
+- Prevent delivery of unverified or misleading insights
+
+---
 
 ### 3.5 Logging & Monitoring
 The system shall:
-- Record all AI operations in **audit logs**
-- Store:
-  - Input text
-  - Output result
+- Record all AI interactions in **audit logs**
+- Store the following metadata:
+  - Input contract text
+  - Generated output
   - Timestamp
-  - Model version
+  - Model version (e.g., GPT-4o)
+  - Prompt version
   - Confidence score
+- Ensure logs are queryable and exportable
+
+---
 
 ### 3.6 Admin Features
-The system shall provide an admin dashboard with:
+The system shall provide an administrative dashboard with:
+
+#### Monitoring:
 - Total request volume
 - Confidence score distribution
-- Error rate monitoring
+- Low-confidence case count
+- Error rates
 
-Admin controls:
-- Update confidence thresholds
-- Set rate limits
-- Export audit logs (CSV format)
+#### Configuration:
+- Adjustable confidence threshold
+- Rate limiting controls
+- Export audit logs in CSV format
 
 ---
 
 ## 4. Non-Functional Requirements
 
 ### 4.1 Performance
-- API response time: **< 5 seconds**
-- Clause extraction: **< 3 seconds**
+- API response time: **< 5 seconds** (excluding external AI latency)
+- Clause extraction execution time: **< 3 seconds**
+
+---
 
 ### 4.2 Reliability
-- System shall run continuously during demo without crashes
-- No memory leaks during a 15-minute test run
+- System shall operate continuously during a **15-minute demo run**
+- No crashes, memory leaks, or service interruptions
+
+---
 
 ### 4.3 Security
-- Secure handling of contract data
+- Secure handling of sensitive contract data
 - Token-based authentication (JWT)
 - Input validation and sanitization
+- Protection against unauthorized API access
+
+---
 
 ### 4.4 Deployability
-- System shall be deployable using Docker
-- Easy setup on local development environment
+- System shall support containerized deployment via Docker
+- Easy setup for local and cloud environments
+
+---
 
 ### 4.5 Hardware Requirements
-- Runs on standard laptop configuration
-- No GPU required
+- Compatible with standard laptop configurations
+- No GPU acceleration required
 
 ---
 
 ## 5. API Endpoints
 
 ### 5.1 Contract APIs
-- `POST /contracts/analyze` → Analyze contract
-- `POST /contracts/extract-clauses` → Extract clauses (testable output)
-- `GET /contracts/{id}/result` → Retrieve analysis result
-- `POST /contracts/compare` → Compare contracts
+- `POST /contracts/analyze` → Perform contract risk analysis  
+- `POST /contracts/extract-clauses` → Extract clauses (measurable output)  
+- `GET /contracts/{id}/result` → Retrieve analysis results  
+- `POST /contracts/compare` → Compare contract versions  
 
 ### 5.2 Admin APIs
-- `GET /admin/dashboard` → System metrics
-- `PUT /admin/settings` → Update configuration
-- `GET /admin/audit-logs/export` → Download audit logs
+- `GET /admin/dashboard` → Retrieve system metrics  
+- `PUT /admin/settings` → Update configuration settings  
+- `GET /admin/audit-logs/export` → Export audit logs  
 
 ---
 
@@ -166,19 +205,21 @@ PostgreSQL database stores:
 - Contracts
 - Analysis results
 - Audit logs
-- System settings
+- Configuration settings
 
 ---
 
 ## 7. Acceptance Criteria
 
-1. Users can complete the full workflow in a **single session**
+The system is considered complete when:
+
+1. Users can complete the entire workflow in a **single session**
 2. Clause extraction completes within **3 seconds**
 3. Every AI output includes a **confidence score**
-4. Low-confidence results trigger **fallback mechanism**
-5. All AI operations are **logged with metadata**
-6. System runs without crashes during demo execution
-7. All user-facing terms expand abbreviations:
+4. Low-confidence results trigger a **fallback mechanism**
+5. All AI operations are **logged with complete metadata**
+6. The system runs without failure during demo execution
+7. All abbreviations are expanded on first use:
    - Artificial Intelligence (AI)
    - Application Programming Interface (API)
    - Natural Language Processing (NLP)
@@ -188,14 +229,14 @@ PostgreSQL database stores:
 ## 8. Assumptions & Constraints
 
 - Internet connectivity is required for AI processing
-- OpenAI API availability affects response time
-- System accuracy depends on input contract quality
+- AI response latency depends on external API availability
+- Output accuracy depends on input contract quality
 
 ---
 
 ## 9. Future Enhancements
 
-- Multi-language support expansion
-- Integration with legal databases
-- Advanced risk scoring models
-- Real-time collaboration features
+- Multi-language expansion beyond Hindi and English
+- Integration with legal databases and case law systems
+- Advanced machine learning-based risk scoring
+- Real-time collaboration and contract editing features
