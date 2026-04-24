@@ -1,248 +1,372 @@
 <div class="container">
-  <h2>Artificial Intelligence (AI) Contract Clause Risk Analyzer</h2>
 
-  <!-- ═══ INPUT SECTION ═══════════════════════════════════════════════════ -->
-  <div *ngIf="!result">
+  <!-- ═══ INPUT PANEL (hidden during/after analysis) ═══════════════════════ -->
+  <div *ngIf="!result && !loading" class="card analyzer-card">
 
-    <label>Language</label>
-    <select [(ngModel)]="language" [disabled]="loading">
-      <option>English</option>
-      <option>Hindi</option>
-    </select>
+    <div class="card-title-block">
+      <h2>Analyze a Contract</h2>
+      <p class="muted">Upload a PDF or paste contract text to get AI-powered clause-by-clause risk analysis.</p>
+    </div>
 
-    <!-- Input mode toggle -->
-    <div class="mode-toggle">
-      <button
-        class="toggle-btn"
-        [class.active]="inputMode === 'text'"
-        [disabled]="loading"
-        (click)="setMode('text')">
-        ✏️ Paste Text
-      </button>
-      <button
-        class="toggle-btn"
-        [class.active]="inputMode === 'pdf'"
-        [disabled]="loading"
-        (click)="setMode('pdf')">
-        📄 Upload PDF
-      </button>
+    <!-- Top row: Language + Input Mode -->
+    <div class="input-row">
+      <div class="field-group">
+        <label>Language</label>
+        <select [(ngModel)]="language" [disabled]="loading">
+          <option>English</option>
+          <option>Hindi</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label>Input Method</label>
+        <div class="mode-toggle">
+          <button
+            class="toggle-btn"
+            [class.active]="inputMode === 'text'"
+            (click)="setMode('text')"
+            type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            </svg>
+            Paste Text
+          </button>
+          <button
+            class="toggle-btn"
+            [class.active]="inputMode === 'pdf'"
+            (click)="setMode('pdf')"
+            type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Upload PDF
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- TEXT MODE -->
-    <div *ngIf="inputMode === 'text'">
+    <div *ngIf="inputMode === 'text'" class="input-area">
       <label>Contract Text</label>
       <textarea
         [(ngModel)]="contractText"
         rows="10"
-        [disabled]="loading"
-        placeholder="Paste your contract text here (minimum 20 characters)...">
+        placeholder="Paste your full contract text here. The AI works best with at least 500 characters of actual contract content...">
       </textarea>
+      <div class="input-hint">
+        <span [class.active]="charCount >= 20">
+          {{ charCount }} characters
+        </span>
+        <span *ngIf="charCount > 0 && charCount < 20" class="muted">
+          · Need at least 20 characters to analyze
+        </span>
+      </div>
     </div>
 
     <!-- PDF MODE -->
-    <div *ngIf="inputMode === 'pdf'">
+    <div *ngIf="inputMode === 'pdf'" class="input-area">
       <label>Upload Contract PDF</label>
       <div
         class="drop-zone"
         [class.has-file]="selectedFile"
-        [class.disabled]="loading"
-        (click)="!loading && fileInput.click()"
+        (click)="fileInput.click()"
         (dragover)="$event.preventDefault()"
-        (drop)="!loading && onFileDrop($event)">
+        (drop)="onFileDrop($event)">
 
         <input
           #fileInput
           type="file"
           accept="application/pdf"
-          style="display:none"
+          hidden
           (change)="onFileSelected($event)" />
 
         <div *ngIf="!selectedFile" class="drop-content">
-          <span class="drop-icon">📁</span>
-          <p>Click to browse or drag & drop a PDF here</p>
-          <small>PDF only · Max 5 MB</small>
+          <div class="drop-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="drop-primary">Click to browse or drop a PDF</p>
+          <p class="drop-secondary">PDF format only · Maximum 5 MB</p>
         </div>
 
         <div *ngIf="selectedFile" class="drop-content file-ready">
-          <span class="drop-icon">✅</span>
-          <p><strong>{{ selectedFile.name }}</strong></p>
-          <small>
+          <div class="drop-icon-wrap success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <p class="drop-primary">{{ selectedFile.name }}</p>
+          <p class="drop-secondary">
             {{ (selectedFile.size / 1024).toFixed(1) }} KB
-            <span *ngIf="!loading">·
-              <a (click)="removeFile($event)">Remove</a>
-            </span>
-          </small>
+            <button class="link-btn" (click)="removeFile($event)" type="button">Remove</button>
+          </p>
         </div>
       </div>
     </div>
 
-    <!-- Submit button with loader -->
-    <button (click)="analyzeContract()" [disabled]="!canSubmit" class="primary-btn">
-      <span *ngIf="!loading">🔍 Analyze Contract</span>
-      <span *ngIf="loading" class="loader-inline">
-        <span class="spinner"></span>
-        Analyzing your contract...
-      </span>
+    <!-- Submit -->
+    <button
+      (click)="analyzeContract()"
+      [disabled]="!canSubmit"
+      class="submit-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+        <polyline points="21 3 21 8 16 8"/>
+      </svg>
+      Analyze Contract
     </button>
 
-    <!-- Loading progress info -->
-    <div *ngIf="loading" class="progress-info">
-      <p>⏱️ This typically takes 10–20 seconds. Please wait while GPT-4o analyzes every clause for risk and suggests alternatives.</p>
+    <div *ngIf="error" class="error">
+      <strong>Error:</strong> {{ error }}
     </div>
-
-    <p class="error" *ngIf="error">{{ error }}</p>
   </div>
 
-  <!-- ═══ RESULTS SECTION ═════════════════════════════════════════════════ -->
-  <div *ngIf="result" class="result-wrap">
+  <!-- ═══ LOADING STATE ═══════════════════════════════════════════════════ -->
+  <div *ngIf="loading" class="card loading-card">
+    <div class="loading-content">
+      <div class="loading-ring"></div>
+      <h3>Analyzing your contract</h3>
+      <p class="loading-message">{{ loadingMessages[loadingStep] }}</p>
+      <div class="loading-steps">
+        <div class="step" [class.active]="loadingStep >= 0" [class.done]="loadingStep > 0">
+          <span class="step-dot"></span>
+          <span class="step-label">Read</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="loadingStep >= 1" [class.done]="loadingStep > 1">
+          <span class="step-dot"></span>
+          <span class="step-label">Extract</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="loadingStep >= 2" [class.done]="loadingStep > 2">
+          <span class="step-dot"></span>
+          <span class="step-label">Analyze</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="loadingStep >= 3">
+          <span class="step-dot"></span>
+          <span class="step-label">Recommend</span>
+        </div>
+      </div>
+      <p class="loading-hint">This typically takes 10–20 seconds</p>
+    </div>
+  </div>
 
-    <!-- File metadata (only for PDF uploads) -->
-    <div *ngIf="fileMeta" class="file-meta-card">
-      <span class="meta-icon">📄</span>
+  <!-- ═══ RESULTS DASHBOARD ═══════════════════════════════════════════════ -->
+  <div *ngIf="result" class="results-dashboard">
+
+    <!-- File metadata -->
+    <div *ngIf="fileMeta" class="file-meta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
       <div>
         <strong>{{ fileMeta.filename }}</strong>
-        <small>{{ fileMeta.totalPages }} pages · {{ fileMeta.extractedChars }} characters extracted</small>
+        <span>{{ fileMeta.totalPages }} pages · {{ fileMeta.extractedChars | number }} characters extracted</span>
       </div>
     </div>
 
-    <!-- Top summary card -->
+    <!-- Top metrics strip -->
+    <div class="metrics-strip">
+      <!-- Overall Risk -->
+      <div class="metric-tile" [ngClass]="riskClass(result.overallRisk)">
+        <div class="metric-label">Overall Risk</div>
+        <div class="metric-main">
+          <span class="risk-pill-xl" [ngClass]="riskClass(result.overallRisk)">
+            {{ result.overallRisk }}
+          </span>
+        </div>
+        <div class="metric-sub">Based on {{ result.clauses?.length || 0 }} clauses</div>
+      </div>
+
+      <!-- Confidence with SVG ring -->
+      <div class="metric-tile">
+        <div class="metric-label">AI Confidence</div>
+        <div class="metric-main">
+          <svg class="conf-ring-svg" viewBox="0 0 120 120">
+            <circle class="conf-track" cx="60" cy="60" r="50" fill="none" stroke-width="10"/>
+            <circle
+              class="conf-progress"
+              cx="60" cy="60" r="50"
+              fill="none"
+              stroke-width="10"
+              stroke-linecap="round"
+              [attr.stroke-dasharray]="314"
+              [attr.stroke-dashoffset]="314 - (314 * confidencePct(result.confidenceScore) / 100)"
+              [attr.stroke]="confidenceColor(result.confidenceScore)"
+              transform="rotate(-90 60 60)"/>
+            <text x="60" y="64" text-anchor="middle" class="conf-text">
+              {{ confidencePct(result.confidenceScore) }}<tspan class="pct">%</tspan>
+            </text>
+          </svg>
+        </div>
+        <div class="metric-sub">Model: {{ result.modelVersion }}</div>
+      </div>
+
+      <!-- Risk distribution -->
+      <div class="metric-tile wide">
+        <div class="metric-label">Risk Distribution</div>
+        <div class="risk-distribution">
+          <div class="risk-bar" *ngIf="clauseCountByRisk('Low') > 0">
+            <span class="bar-fill risk-low" [style.flex]="clauseCountByRisk('Low')"></span>
+          </div>
+          <div class="risk-bar" *ngIf="clauseCountByRisk('Medium') > 0">
+            <span class="bar-fill risk-medium" [style.flex]="clauseCountByRisk('Medium')"></span>
+          </div>
+          <div class="risk-bar" *ngIf="clauseCountByRisk('High') > 0">
+            <span class="bar-fill risk-high" [style.flex]="clauseCountByRisk('High')"></span>
+          </div>
+          <div class="risk-bar" *ngIf="clauseCountByRisk('Critical') > 0">
+            <span class="bar-fill risk-critical" [style.flex]="clauseCountByRisk('Critical')"></span>
+          </div>
+        </div>
+        <div class="risk-legend">
+          <span class="legend-item"><span class="dot risk-low"></span>{{ clauseCountByRisk('Low') }} Low</span>
+          <span class="legend-item"><span class="dot risk-medium"></span>{{ clauseCountByRisk('Medium') }} Med</span>
+          <span class="legend-item"><span class="dot risk-high"></span>{{ clauseCountByRisk('High') }} High</span>
+          <span class="legend-item"><span class="dot risk-critical"></span>{{ clauseCountByRisk('Critical') }} Crit</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions bar -->
+    <div class="actions-bar">
+      <div class="actions-left">
+        <h3>Clause-Level Analysis</h3>
+        <p class="muted">{{ result.clauses?.length || 0 }} clauses analyzed · Processing time {{ (result.processingTimeMs / 1000).toFixed(1) }}s</p>
+      </div>
+      <div class="actions-right">
+        <button class="btn-ghost" (click)="downloadResult()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export JSON
+        </button>
+        <button class="btn-ghost" (click)="newAnalysis()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          New Analysis
+        </button>
+      </div>
+    </div>
+
+    <!-- Human review warning -->
+    <div *ngIf="result.requiresHumanReview" class="warning-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <div>
+        <strong>Human review recommended</strong>
+        <p>{{ result.fallbackMessage || 'This analysis flagged concerns that warrant a legal professional\'s attention.' }}</p>
+      </div>
+    </div>
+
+    <!-- Summary -->
     <div class="summary-card">
-      <div class="summary-header">
-        <h3>Analysis Complete</h3>
-        <div class="summary-actions">
-          <button class="btn-secondary" (click)="downloadResult()">⬇️ Download JSON</button>
-          <button class="btn-secondary" (click)="newAnalysis()">🔄 New Analysis</button>
-        </div>
-      </div>
-
-      <!-- Overall risk & confidence in a 2-column grid -->
-      <div class="summary-grid">
-        <!-- Overall Risk -->
-        <div class="metric-card" [ngClass]="riskClass(result.overallRisk)">
-          <div class="metric-label">Overall Risk</div>
-          <div class="metric-value">
-            <span class="risk-badge-large" [ngClass]="riskClass(result.overallRisk)">
-              {{ result.overallRisk }}
-            </span>
-          </div>
-        </div>
-
-        <!-- Confidence -->
-        <div class="metric-card">
-          <div class="metric-label">AI Confidence</div>
-          <div class="metric-value">
-            <div class="conf-ring" [class.low]="result.confidenceScore < 0.6">
-              {{ (result.confidenceScore * 100).toFixed(0) }}%
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Human review warning -->
-      <div *ngIf="result.requiresHumanReview" class="warning">
-        ⚠️ <strong>Human review required</strong> — This analysis has flagged concerns that need a legal professional's attention.
-      </div>
-
-      <!-- Summary text -->
-      <div class="summary-text">
-        <h4>📝 Summary</h4>
+      <div class="summary-section">
+        <h4>Executive Summary</h4>
         <p>{{ result.summary }}</p>
       </div>
-
-      <!-- Plain language explanation -->
-      <div class="summary-text" *ngIf="result.plainLanguageExplanation">
-        <h4>💡 What This Means For You</h4>
+      <div class="summary-section" *ngIf="result.plainLanguageExplanation">
+        <h4>In Plain Language</h4>
         <p>{{ result.plainLanguageExplanation }}</p>
       </div>
     </div>
 
-    <!-- Named Entities -->
+    <!-- Named entities -->
     <div class="entities-card" *ngIf="result.namedEntities">
-      <h4>🏷️ Key Information Extracted</h4>
+      <h4>Key Information Extracted</h4>
       <div class="entities-grid">
         <div class="entity-group" *ngIf="result.namedEntities.parties?.length">
           <div class="entity-label">Parties</div>
-          <div class="entity-chips">
-            <span class="chip" *ngFor="let p of result.namedEntities.parties">{{ p }}</span>
+          <div class="chips">
+            <span class="chip chip-brand" *ngFor="let p of result.namedEntities.parties">{{ p }}</span>
           </div>
         </div>
         <div class="entity-group" *ngIf="result.namedEntities.dates?.length">
           <div class="entity-label">Dates</div>
-          <div class="entity-chips">
+          <div class="chips">
             <span class="chip" *ngFor="let d of result.namedEntities.dates">{{ d }}</span>
           </div>
         </div>
         <div class="entity-group" *ngIf="result.namedEntities.jurisdictions?.length">
           <div class="entity-label">Jurisdictions</div>
-          <div class="entity-chips">
+          <div class="chips">
             <span class="chip" *ngFor="let j of result.namedEntities.jurisdictions">{{ j }}</span>
           </div>
         </div>
         <div class="entity-group" *ngIf="result.namedEntities.moneyValues?.length">
           <div class="entity-label">Money Values</div>
-          <div class="entity-chips">
+          <div class="chips">
             <span class="chip" *ngFor="let m of result.namedEntities.moneyValues">{{ m }}</span>
           </div>
         </div>
         <div class="entity-group" *ngIf="result.namedEntities.obligations?.length">
           <div class="entity-label">Obligations</div>
-          <div class="entity-chips">
+          <div class="chips">
             <span class="chip" *ngFor="let o of result.namedEntities.obligations">{{ o }}</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Clauses list -->
-    <div class="clauses-section">
-      <h4>📋 Clause-by-Clause Analysis <span class="count">({{ result.clauses?.length || 0 }})</span></h4>
-
+    <!-- Clauses -->
+    <div class="clauses-list">
       <div *ngFor="let clause of result.clauses; let i = index"
-           class="clause-card"
+           class="clause-item"
            [ngClass]="riskClass(clause.riskLevel)">
 
-        <div class="clause-header">
-          <div class="clause-number">{{ i + 1 }}</div>
-          <div class="clause-title-wrap">
+        <div class="clause-top">
+          <div class="clause-index">{{ i + 1 }}</div>
+          <div class="clause-head">
             <h5>{{ clause.clauseTitle }}</h5>
-            <span class="risk-badge" [ngClass]="riskClass(clause.riskLevel)">
+            <span class="risk-pill" [ngClass]="riskClass(clause.riskLevel)">
               {{ clause.riskLevel }}
             </span>
           </div>
+          <div class="clause-conf">{{ confidencePct(clause.confidenceScore) }}%</div>
         </div>
 
         <div class="clause-body">
-          <div class="clause-field">
-            <div class="field-label">⚠️ Risk Reason</div>
+          <div class="clause-section">
+            <div class="section-label">Risk Assessment</div>
             <p>{{ clause.riskReason }}</p>
           </div>
 
-          <div class="clause-field">
-            <div class="field-label">💬 Plain Explanation</div>
+          <div class="clause-section">
+            <div class="section-label">Plain Explanation</div>
             <p>{{ clause.plainExplanation }}</p>
           </div>
 
-          <div class="clause-field suggestion">
-            <div class="field-label">✨ Suggested Alternative</div>
+          <div class="clause-section suggestion-box">
+            <div class="section-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Suggested Alternative
+            </div>
             <p>{{ clause.suggestedAlternative }}</p>
-          </div>
-
-          <div class="clause-footer">
-            <span class="conf-mini">
-              Confidence: <strong>{{ (clause.confidenceScore * 100).toFixed(0) }}%</strong>
-            </span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Metadata footer -->
-    <div class="meta-footer">
-      <small>
-        Model: <strong>{{ result.modelVersion }}</strong> ·
-        Prompt: <strong>{{ result.promptVersion }}</strong> ·
-        Processing: <strong>{{ (result.processingTimeMs / 1000).toFixed(1) }}s</strong>
-      </small>
+    <!-- Footer metadata -->
+    <div class="result-footer">
+      <span><strong>Model:</strong> <code>{{ result.modelVersion }}</code></span>
+      <span><strong>Prompt:</strong> <code>{{ result.promptVersion }}</code></span>
+      <span><strong>Processing:</strong> <code>{{ (result.processingTimeMs / 1000).toFixed(1) }}s</code></span>
     </div>
   </div>
 </div>

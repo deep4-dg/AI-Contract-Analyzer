@@ -1,22 +1,49 @@
 <header class="app-header">
-  <h1>Artificial Intelligence Contract Clause Risk Analyzer</h1>
+  <div class="app-header-inner">
+    <span class="header-badge">
+      <span class="pulse-dot"></span>
+      LEGAL AI
+    </span>
+    <h1>
+      Contract Clause <span class="accent">Risk Analyzer</span>
+    </h1>
+  </div>
 </header>
 
 <nav class="top-bar" *ngIf="isLoggedIn">
-  <div class="nav-links">
-    <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-      📄 Analyzer
-    </a>
-    <a routerLink="/home/compare" routerLinkActive="active">
-      🔄 Compare
-    </a>
-    <a routerLink="/home/admin" routerLinkActive="active">
-      📊 Admin Dashboard
-    </a>
+  <div class="top-bar-inner">
+    <div class="nav-links">
+      <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Analyzer
+      </a>
+      <a routerLink="/home/compare" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M16 3h5v5"/>
+          <path d="M4 20L21 3"/>
+          <path d="M21 16v5h-5"/>
+          <path d="M15 15l6 6"/>
+          <path d="M4 4l5 5"/>
+        </svg>
+        Compare
+      </a>
+      <a routerLink="/home/admin" routerLinkActive="active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="3" width="7" height="9"/>
+          <rect x="14" y="3" width="7" height="5"/>
+          <rect x="14" y="12" width="7" height="9"/>
+          <rect x="3" y="16" width="7" height="5"/>
+        </svg>
+        Dashboard
+      </a>
+    </div>
+    <button class="logout-btn" (click)="logout()">Logout</button>
   </div>
-  <button class="logout-btn" (click)="logout()">
-    Logout
-  </button>
 </nav>
 
 <router-outlet></router-outlet>

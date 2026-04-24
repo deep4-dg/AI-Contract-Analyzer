@@ -12,17 +12,18 @@ import { ContractService } from '../../services/contract';
 })
 export class ContractAnalyzerComponent {
 
-  // ── Form state ────────────────────────────────────────────────────────────
   contractText = '';
   language = 'English';
   inputMode: 'text' | 'pdf' = 'text';
   selectedFile: File | null = null;
 
-  // ── UI state ──────────────────────────────────────────────────────────────
   loading = false;
+  loadingStep = 0;
   error = '';
   result: any = null;
-  fileMeta: any = null; // holds info about the uploaded PDF (pages, chars, etc.)
+  fileMeta: any = null;
+
+  private loadingTimer: any = null;
 
   constructor(
     private contractService: ContractService,
@@ -33,32 +34,25 @@ export class ContractAnalyzerComponent {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      if (file.type !== 'application/pdf') {
-        this.error = 'Only PDF files are supported. Please select a .pdf file.';
-        this.selectedFile = null;
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        this.error = 'File is too large. Maximum size is 5 MB.';
-        this.selectedFile = null;
-        return;
-      }
-      this.selectedFile = file;
-      this.error = '';
+      this.validateAndSet(input.files[0]);
     }
   }
 
   onFileDrop(event: DragEvent): void {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
-    if (!file) return;
+    if (file) this.validateAndSet(file);
+  }
+
+  private validateAndSet(file: File) {
     if (file.type !== 'application/pdf') {
       this.error = 'Only PDF files are supported.';
+      this.selectedFile = null;
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      this.error = 'File is too large. Maximum size is 5 MB.';
+      this.error = 'File exceeds 5 MB limit.';
+      this.selectedFile = null;
       return;
     }
     this.selectedFile = file;
@@ -86,10 +80,31 @@ export class ContractAnalyzerComponent {
     return false;
   }
 
-  /** Risk class helper for template (handles "Critical" → red, "Low" → green, etc.) */
+  get charCount(): number { return this.contractText.length; }
+
+  /** Risk class helper */
   riskClass(level: string): string {
-    if (!level) return '';
-    return 'risk-' + level.toLowerCase();
+    return level ? 'risk-' + level.toLowerCase() : 'risk-medium';
+  }
+
+  /** Count clauses by risk level */
+  clauseCountByRisk(level: string): number {
+    if (!this.result?.clauses) return 0;
+    return this.result.clauses.filter(
+      (c: any) => c.riskLevel?.toLowerCase() === level.toLowerCase()
+    ).length;
+  }
+
+  /** Get confidence percentage as integer */
+  confidencePct(score: number): number {
+    return Math.round((score || 0) * 100);
+  }
+
+  /** Confidence color based on score */
+  confidenceColor(score: number): string {
+    if (score >= 0.8) return 'var(--risk-low)';
+    if (score >= 0.6) return 'var(--risk-medium)';
+    return 'var(--risk-critical)';
   }
 
   analyzeContract(): void {
@@ -97,10 +112,19 @@ export class ContractAnalyzerComponent {
     this.error = '';
     this.result = null;
     this.fileMeta = null;
+    this.loadingStep = 0;
+
+    // Animated loading steps
+    this.loadingTimer = setInterval(() => {
+      this.ngZone.run(() => {
+        this.loadingStep = (this.loadingStep + 1) % 4;
+        this.cdr.detectChanges();
+      });
+    }, 2500);
 
     const finish = (res: any, isFile: boolean) => {
-      // Run inside Angular zone so the UI updates immediately
       this.ngZone.run(() => {
+        clearInterval(this.loadingTimer);
         this.result = res.result;
         if (isFile) {
           this.fileMeta = {
@@ -110,52 +134,42 @@ export class ContractAnalyzerComponent {
           };
         }
         this.loading = false;
-        this.cdr.detectChanges(); // force re-render
-        // Scroll to result after render
+        this.cdr.detectChanges();
         setTimeout(() => {
-          document.querySelector('.result-card')?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+          document.querySelector('.results-dashboard')?.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
       });
     };
 
     const fail = (err: any) => {
       this.ngZone.run(() => {
-        this.error = err?.error?.error || 'Failed to analyze contract. Please try again.';
+        clearInterval(this.loadingTimer);
+        this.error = err?.error?.error || 'Analysis failed. Please try again.';
         this.loading = false;
         this.cdr.detectChanges();
       });
     };
 
     if (this.inputMode === 'pdf' && this.selectedFile) {
-      this.contractService
-        .analyzeContractFile(this.selectedFile, this.language)
-        .subscribe({
-          next: (res: any) => finish(res, true),
-          error: fail
-        });
+      this.contractService.analyzeContractFile(this.selectedFile, this.language)
+        .subscribe({ next: (r: any) => finish(r, true), error: fail });
     } else {
-      this.contractService
-        .analyzeContract(this.contractText, this.language)
-        .subscribe({
-          next: (res: any) => finish(res, false),
-          error: fail
-        });
+      this.contractService.analyzeContract(this.contractText, this.language)
+        .subscribe({ next: (r: any) => finish(r, false), error: fail });
     }
   }
 
-  /** Download result as JSON file */
   downloadResult(): void {
     if (!this.result) return;
     const blob = new Blob([JSON.stringify(this.result, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `analysis_${Date.now()}.json`;
+    a.download = `contract_analysis_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  /** Reset form for a new analysis */
   newAnalysis(): void {
     this.result = null;
     this.fileMeta = null;
@@ -163,4 +177,11 @@ export class ContractAnalyzerComponent {
     this.contractText = '';
     this.selectedFile = null;
   }
+
+  loadingMessages = [
+    '📄 Reading contract text...',
+    '🔍 Identifying legal clauses...',
+    '⚖️  Analyzing risk for each clause...',
+    '✨ Generating recommendations...'
+  ];
 }
