@@ -1,24 +1,214 @@
-<div class="container login-box">
-  <h2>{{ isSignup ? 'Sign Up' : 'Login' }}</h2>
+<div class="login-page">
 
-  <label *ngIf="isSignup">Name</label>
-  <input *ngIf="isSignup" [(ngModel)]="name" placeholder="Enter name" />
+  <!-- ═══ LEFT SIDE — Branding Panel ═══════════════════════════════════ -->
+  <div class="login-brand-panel">
+    <div class="brand-content">
+      <div class="brand-badge">
+        <span class="pulse-dot"></span>
+        LEGAL AI
+      </div>
 
-  <label>Email</label>
-  <input [(ngModel)]="email" placeholder="Enter email" />
+      <h1 class="brand-title">
+        Contract Risk Analysis
+        <span class="brand-accent">powered by AI</span>
+      </h1>
 
-  <label>Password</label>
-  <input [(ngModel)]="password" type="password" placeholder="Enter password" />
+      <p class="brand-subtitle">
+        Understand every clause. Spot every risk.
+        Negotiate with confidence.
+      </p>
 
-  <button (click)="submit()">
-    {{ isSignup ? 'Create Account' : 'Login' }}
-  </button>
+      <div class="brand-features">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <div>
+            <strong>Risk Classification</strong>
+            <span>Low · Medium · High · Critical</span>
+          </div>
+        </div>
 
-  <p class="error" *ngIf="error">{{ error }}</p>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div>
+            <strong>Analysis in Seconds</strong>
+            <span>GPT-4o powered review</span>
+          </div>
+        </div>
 
-  <p>
-    <a href="#" (click)="isSignup = !isSignup; $event.preventDefault()">
-      {{ isSignup ? 'Already have an account? Login' : 'New user? Sign up' }}
-    </a>
-  </p>
+        <div class="feature-item">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div>
+            <strong>Tamper-Evident Audit</strong>
+            <span>SHA-256 verified logs</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-footer">
+        <small>Amnex Hackathon 2026 · UC23</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ RIGHT SIDE — Form Panel ═══════════════════════════════════════ -->
+  <div class="login-form-panel">
+    <div class="login-form-wrap">
+
+      <div class="form-header">
+        <h2>{{ isSignup ? 'Create an account' : 'Welcome back' }}</h2>
+        <p>{{ isSignup ? 'Sign up to get started' : 'Sign in to your account to continue' }}</p>
+      </div>
+
+      <form class="login-form" (submit)="submit(); $event.preventDefault()">
+
+        <!-- Name (signup only) -->
+        <div class="field" *ngIf="isSignup">
+          <label>Full Name</label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <input
+              type="text"
+              [(ngModel)]="name"
+              name="name"
+              placeholder="Enter your full name"
+              autocomplete="name" />
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="field">
+          <label>Email Address</label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <input
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              required />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="field">
+          <label>
+            Password
+            <span *ngIf="!isSignup" class="hint-small">Use the test credentials below</span>
+          </label>
+          <div class="input-with-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="Enter your password"
+              [attr.autocomplete]="isSignup ? 'new-password' : 'current-password'"
+              required />
+            <button
+              type="button"
+              class="toggle-eye"
+              (click)="showPassword = !showPassword"
+              [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
+              <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Role selector (signup only) -->
+        <div class="field" *ngIf="isSignup">
+          <label>Role</label>
+          <select [(ngModel)]="role" name="role">
+            <option value="LEGAL_PROFESSIONAL">Legal Professional / Paralegal</option>
+            <option value="COMPLIANCE_OFFICER">Compliance Officer</option>
+            <option value="SYSTEM_ADMIN">System Administrator</option>
+          </select>
+          <small class="field-hint">Your role determines access to admin features.</small>
+        </div>
+
+        <!-- Error -->
+        <div *ngIf="error" class="login-error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ error }}
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="submit-btn" [disabled]="loading">
+          <span *ngIf="!loading">
+            {{ isSignup ? 'Create Account' : 'Sign In' }}
+          </span>
+          <span *ngIf="loading" class="btn-loading">
+            <span class="btn-spinner"></span>
+            Please wait...
+          </span>
+        </button>
+
+        <!-- Toggle mode -->
+        <div class="mode-switch">
+          <span>{{ isSignup ? 'Already have an account?' : 'New to the platform?' }}</span>
+          <a href="#" (click)="toggleMode($event)">
+            {{ isSignup ? 'Sign in' : 'Create account' }}
+          </a>
+        </div>
+      </form>
+
+      <!-- Test Credentials Panel (only on login) -->
+      <div class="test-creds" *ngIf="!isSignup">
+        <div class="test-creds-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          <strong>Test Credentials</strong>
+        </div>
+        <div class="creds-grid">
+          <button type="button" class="cred-chip" (click)="fillCreds('admin@test.com', 'Admin@123')">
+            <span class="chip-role admin">Admin</span>
+            <span class="chip-email">admin@test.com</span>
+          </button>
+          <button type="button" class="cred-chip" (click)="fillCreds('compliance@test.com', 'Compliance@123')">
+            <span class="chip-role compliance">Compliance</span>
+            <span class="chip-email">compliance@test.com</span>
+          </button>
+          <button type="button" class="cred-chip" (click)="fillCreds('legal@test.com', 'Legal@123')">
+            <span class="chip-role legal">Legal</span>
+            <span class="chip-email">legal@test.com</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
