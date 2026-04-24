@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-contract-analyzer',
@@ -25,8 +26,16 @@ export class ContractAnalyzerComponent {
 
   private loadingTimer: any = null;
 
+  loadingMessages = [
+    '📄 Reading contract text...',
+    '🔍 Identifying legal clauses...',
+    '⚖️  Analyzing risk for each clause...',
+    '✨ Generating recommendations...'
+  ];
+
   constructor(
     private contractService: ContractService,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {}
@@ -46,17 +55,17 @@ export class ContractAnalyzerComponent {
 
   private validateAndSet(file: File) {
     if (file.type !== 'application/pdf') {
-      this.error = 'Only PDF files are supported.';
+      this.toast.error('Invalid file type', 'Only PDF files are supported. Please select a .pdf file.');
       this.selectedFile = null;
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      this.error = 'File exceeds 5 MB limit.';
+      this.toast.error('File too large', `File is ${(file.size / 1024 / 1024).toFixed(1)} MB. Maximum size is 5 MB.`);
       this.selectedFile = null;
       return;
     }
     this.selectedFile = file;
-    this.error = '';
+    this.toast.success('File ready', `${file.name} loaded successfully.`);
   }
 
   removeFile(event: Event): void {
@@ -68,7 +77,6 @@ export class ContractAnalyzerComponent {
     this.inputMode = mode;
     this.result = null;
     this.fileMeta = null;
-    this.error = '';
     if (mode === 'text') this.selectedFile = null;
     if (mode === 'pdf') this.contractText = '';
   }
@@ -82,12 +90,10 @@ export class ContractAnalyzerComponent {
 
   get charCount(): number { return this.contractText.length; }
 
-  /** Risk class helper */
   riskClass(level: string): string {
     return level ? 'risk-' + level.toLowerCase() : 'risk-medium';
   }
 
-  /** Count clauses by risk level */
   clauseCountByRisk(level: string): number {
     if (!this.result?.clauses) return 0;
     return this.result.clauses.filter(
@@ -95,12 +101,10 @@ export class ContractAnalyzerComponent {
     ).length;
   }
 
-  /** Get confidence percentage as integer */
   confidencePct(score: number): number {
     return Math.round((score || 0) * 100);
   }
 
-  /** Confidence color based on score */
   confidenceColor(score: number): string {
     if (score >= 0.8) return 'var(--risk-low)';
     if (score >= 0.6) return 'var(--risk-medium)';
@@ -108,13 +112,33 @@ export class ContractAnalyzerComponent {
   }
 
   analyzeContract(): void {
+    // Client-side validation with toast
+    if (this.inputMode === 'text') {
+      if (!this.contractText.trim()) {
+        this.toast.warning('Empty input', 'Please paste contract text before analyzing.');
+        return;
+      }
+      if (this.contractText.trim().length < 20) {
+        this.toast.warning(
+          'Text too short',
+          `Contract text needs at least 20 characters. Currently ${this.contractText.trim().length}.`
+        );
+        return;
+      }
+    }
+
+    if (this.inputMode === 'pdf' && !this.selectedFile) {
+      this.toast.warning('No file selected', 'Please select a PDF file to analyze.');
+      return;
+    }
+
     this.loading = true;
-    this.error = '';
     this.result = null;
     this.fileMeta = null;
     this.loadingStep = 0;
 
-    // Animated loading steps
+    this.toast.info('Analysis started', 'Your contract is being analyzed. This takes 10–20 seconds.');
+
     this.loadingTimer = setInterval(() => {
       this.ngZone.run(() => {
         this.loadingStep = (this.loadingStep + 1) % 4;
@@ -134,6 +158,24 @@ export class ContractAnalyzerComponent {
           };
         }
         this.loading = false;
+
+        // Smart success toast based on result
+        const risk = res.result?.overallRisk;
+        const conf = this.confidencePct(res.result?.confidenceScore);
+        const clauseCount = res.result?.clauses?.length || 0;
+
+        if (res.result?.requiresHumanReview) {
+          this.toast.warning(
+            'Analysis complete — Review needed',
+            `${clauseCount} clauses analyzed. Confidence ${conf}% is below threshold.`
+          );
+        } else {
+          this.toast.success(
+            `Analysis complete (${risk} risk)`,
+            `${clauseCount} clauses analyzed with ${conf}% confidence in ${(res.result?.processingTimeMs / 1000).toFixed(1)}s.`
+          );
+        }
+
         this.cdr.detectChanges();
         setTimeout(() => {
           document.querySelector('.results-dashboard')?.scrollIntoView({ behavior: 'smooth' });
@@ -144,8 +186,8 @@ export class ContractAnalyzerComponent {
     const fail = (err: any) => {
       this.ngZone.run(() => {
         clearInterval(this.loadingTimer);
-        this.error = err?.error?.error || 'Analysis failed. Please try again.';
         this.loading = false;
+        this.toast.fromHttpError(err, 'Analysis failed');
         this.cdr.detectChanges();
       });
     };
@@ -161,27 +203,25 @@ export class ContractAnalyzerComponent {
 
   downloadResult(): void {
     if (!this.result) return;
-    const blob = new Blob([JSON.stringify(this.result, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contract_analysis_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = new Blob([JSON.stringify(this.result, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `contract_analysis_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.toast.success('Downloaded', 'Analysis saved as JSON file.');
+    } catch {
+      this.toast.error('Download failed', 'Could not create download file.');
+    }
   }
 
   newAnalysis(): void {
     this.result = null;
     this.fileMeta = null;
-    this.error = '';
     this.contractText = '';
     this.selectedFile = null;
+    this.toast.info('Ready for new analysis', 'Upload another contract to continue.');
   }
-
-  loadingMessages = [
-    '📄 Reading contract text...',
-    '🔍 Identifying legal clauses...',
-    '⚖️  Analyzing risk for each clause...',
-    '✨ Generating recommendations...'
-  ];
 }

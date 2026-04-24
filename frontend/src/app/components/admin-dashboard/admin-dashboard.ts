@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, NgZone } from '@angula
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContractService } from '../../services/contract';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -16,26 +17,23 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   loading = true;
   error = '';
 
-  // Settings form
   confidenceThreshold = 0.6;
   rateLimit = 100;
   savingSettings = false;
   settingsMessage = '';
 
-  // Audit export
   exportFrom = '';
   exportTo = '';
   exporting = false;
 
-  // Auto-refresh
   private refreshTimer: any = null;
   lastUpdated: Date | null = null;
 
-  // User role check
   userRole = '';
 
   constructor(
     private contractService: ContractService,
+    private toast: ToastService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone
   ) {
@@ -47,7 +45,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadDashboard();
-    // Auto-refresh every 10 seconds (SRS §3.5 — real-time summary)
     this.refreshTimer = setInterval(() => this.loadDashboard(true), 10000);
   }
 
@@ -73,6 +70,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.ngZone.run(() => {
           this.error = err?.error?.error || 'Failed to load dashboard';
           this.loading = false;
+          if (!silent) {
+            this.toast.fromHttpError(err, 'Dashboard load failed');
+          }
           this.cdr.detectChanges();
         });
       }
@@ -84,7 +84,20 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   saveSettings() {
-    if (!this.isAdmin) return;
+    if (!this.isAdmin) {
+      this.toast.error('Access denied', 'Only System Administrators can change settings.');
+      return;
+    }
+
+    // Client-side validation
+    if (this.confidenceThreshold < 0 || this.confidenceThreshold > 1) {
+      this.toast.warning('Invalid threshold', 'Confidence threshold must be between 0 and 1.');
+      return;
+    }
+    if (this.rateLimit < 1 || this.rateLimit > 1000) {
+      this.toast.warning('Invalid rate limit', 'Rate limit must be between 1 and 1000.');
+      return;
+    }
 
     this.savingSettings = true;
     this.settingsMessage = '';
@@ -96,15 +109,18 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       next: () => {
         this.ngZone.run(() => {
           this.savingSettings = false;
-          this.settingsMessage = '✓ Settings saved successfully';
-          setTimeout(() => { this.settingsMessage = ''; this.cdr.detectChanges(); }, 3000);
+          this.toast.success(
+            'Settings saved',
+            `Confidence threshold: ${this.confidenceThreshold}, Rate limit: ${this.rateLimit}/10min`
+          );
           this.loadDashboard(true);
+          this.cdr.detectChanges();
         });
       },
       error: (err) => {
         this.ngZone.run(() => {
           this.savingSettings = false;
-          this.settingsMessage = '✗ ' + (err?.error?.error || 'Failed to save');
+          this.toast.fromHttpError(err, 'Could not save settings');
           this.cdr.detectChanges();
         });
       }
@@ -112,31 +128,49 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   exportAuditCsv() {
-    if (!this.isAdmin) return;
+    if (!this.isAdmin) {
+      this.toast.error('Access denied', 'Only System Administrators can export audit logs.');
+      return;
+    }
+
+    // Validate date range if provided
+    if (this.exportFrom && this.exportTo && new Date(this.exportFrom) > new Date(this.exportTo)) {
+      this.toast.warning('Invalid date range', '"From" date must be before "To" date.');
+      return;
+    }
 
     this.exporting = true;
     this.contractService.exportAuditLogs(this.exportFrom, this.exportTo).subscribe({
       next: (blob: Blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const timestamp = new Date().toISOString().split('T')[0];
-        a.download = `audit_logs_${timestamp}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        this.exporting = false;
-        this.cdr.detectChanges();
+        try {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const timestamp = new Date().toISOString().split('T')[0];
+          a.download = `audit_logs_${timestamp}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          this.exporting = false;
+          this.toast.success(
+            'Audit logs exported',
+            `File downloaded as audit_logs_${timestamp}.csv`
+          );
+          this.cdr.detectChanges();
+        } catch {
+          this.exporting = false;
+          this.toast.error('Download failed', 'Could not save the CSV file.');
+        }
       },
       error: (err) => {
         this.exporting = false;
-        alert('Export failed: ' + (err?.error?.error || 'Unknown error'));
+        this.toast.fromHttpError(err, 'Export failed');
+        this.cdr.detectChanges();
       }
     });
   }
 
-  /** Calculate confidence distribution percentage for the bar */
   confidencePct(count: number): number {
     const total = this.dashboard?.totalRequests || 1;
     return Math.round((count / total) * 100);
